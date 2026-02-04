@@ -31,58 +31,31 @@ export async function readConfig(directory: string): Promise<WindowSettings> {
         };
     }
     
-    // Fallback to reading from workspace files for backwards compatibility
-    // Use the actual workspace folder URI when available (supports remote/SSH workspaces)
-    let uri: vscode.Uri;
-    const matchingFolder = vscode.workspace.workspaceFolders?.find(f => f.uri.fsPath === directory);
-    if (matchingFolder) {
-        uri = matchingFolder.uri;
-    } else if (vscode.workspace.workspaceFile?.fsPath === directory) {
-        uri = vscode.workspace.workspaceFile;
-    } else {
-        uri = vscode.Uri.file(directory);
-    }
-    const configPath = directory.endsWith('.code-workspace') ? uri : uri.with({ path: `${uri.path}/.vscode/settings.json` });
-    // console.log('[DEBUG] Reading config from path:', configPath.fsPath);
-
-    let settings: any;
-    try {
-        const config = await vscode.workspace.fs.readFile(configPath);
-        settings = JSON.parse(config.toString());
-        // console.log('[DEBUG] Config file contents:', JSON.stringify(settings, null, 2));
-    } catch (error: any) {
-        console.error(`Failed to read config file at ${configPath.fsPath}: ${error.message}`);
-        settings = {};
-    }
-
+    // Fallback: use VS Code's configuration API which correctly resolves settings
+    // from .code-workspace files across local/remote boundaries (e.g. SSH remotes)
+    const vsConfig = vscode.workspace.getConfiguration('windowColor');
     const fallbackWindowName = directory.split('/').pop() || 'Untitled Window';
-    const windowColorSettings = directory.endsWith('.code-workspace') ? (settings['settings'] || {}) : settings;
-    // console.log('[DEBUG] Extracted windowColorSettings:', JSON.stringify(windowColorSettings, null, 2));
-    
-    // Only generate random color if no color exists
-    const existingColor = windowColorSettings['windowColor.mainColor'];
+
+    const existingColor = vsConfig.get<string>('mainColor');
     const mainColor = existingColor || generateRandomColor();
-    // console.log('[DEBUG] Using main color:', mainColor, '(existing:', existingColor, ')');
 
     const result = {
-        windowName: windowColorSettings['windowColor.name'] || fallbackWindowName,
+        windowName: vsConfig.get<string>('name') || fallbackWindowName,
         mainColor: mainColor,
         mainColorContrast: getContrastColor(mainColor),
-        isActivityBarColored: windowColorSettings['windowColor.isActivityBarColored'] ?? false,
-        isTitleBarColored: windowColorSettings['windowColor.isTitleBarColored'] ?? false,
-        isStatusBarColored: windowColorSettings['windowColor.isStatusBarColored'] ?? true,
-        isWindowNameColored: windowColorSettings['windowColor.isWindowNameColored'] ?? true,
-        isActiveItemsColored: windowColorSettings['windowColor.isActiveItemsColored'] ?? true,
-        setWindowTitle: windowColorSettings['windowColor.setWindowTitle'] ?? false
+        isActivityBarColored: vsConfig.get<boolean>('isActivityBarColored') ?? false,
+        isTitleBarColored: vsConfig.get<boolean>('isTitleBarColored') ?? false,
+        isStatusBarColored: vsConfig.get<boolean>('isStatusBarColored') ?? true,
+        isWindowNameColored: vsConfig.get<boolean>('isWindowNameColored') ?? true,
+        isActiveItemsColored: vsConfig.get<boolean>('isActiveItemsColored') ?? true,
+        setWindowTitle: vsConfig.get<boolean>('setWindowTitle') ?? false
     };
-    
+
     // Migrate workspace settings to user preferences if they exist
     if (existingColor) {
         await saveWorkspaceToUserSettings(directory, result);
-        // console.log('[DEBUG] Migrated workspace settings to user preferences');
     }
-    
-    // console.log('[DEBUG] readConfig returning:', JSON.stringify(result, null, 2));
+
     return result;
 }
 

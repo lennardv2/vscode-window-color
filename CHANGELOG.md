@@ -4,6 +4,15 @@ All notable changes to the "Set Window Color & Name" extension will be documente
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.1.1] - 2026-02-04
+
+### Fixed
+- Fixed settings not being read on remote SSH workspaces with `.code-workspace` files, causing random colors on every load
+- Clean up stale folder-level `windowColor.*` settings from remote `.vscode/settings.json` during migration
+
+### Added
+- Uninstall hook that cleans up all color customizations, window title overrides, and extension settings from both user and workspace files
+
 ## [2.1.0] - 2026-02-04
 
 ### Added
