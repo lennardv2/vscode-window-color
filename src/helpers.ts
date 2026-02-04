@@ -1,33 +1,3 @@
-import * as vscode from 'vscode';
-import { WindowSettings, WindowReference, WindowGroup } from './extension';
-import { saveToWorkspaceConfig } from './workspaces';
-
-export async function readConfig(directory: string): Promise<WindowSettings> {
-    const uri = vscode.Uri.file(directory);
-    const configPath = directory.endsWith('.code-workspace') ? uri : uri.with({ path: `${uri.path}/.vscode/settings.json` });
-    const config = await vscode.workspace.fs.readFile(configPath);
-    const settings = JSON.parse(config.toString());
-
-    const fallbackWindowName = directory.split('/').pop() || 'Untitled Window';
-
-    const windowColorSettings = directory.endsWith('.code-workspace') ? settings['settings'] : settings;
-    
-    // Only generate random color if no color exists
-    const existingColor = windowColorSettings['windowColor.mainColor'];
-    const mainColor = existingColor || generateRandomColor();
-
-    return {
-        windowName: windowColorSettings['windowColor.name'] || fallbackWindowName,
-        mainColor: mainColor,
-        isActivityBarColored: windowColorSettings['windowColor.isActivityBarColored'] ?? false,
-        isTitleBarColored: windowColorSettings['windowColor.isTitleBarColored'] ?? false,
-        isStatusBarColored: windowColorSettings['windowColor.isStatusBarColored'] ?? true,
-        isWindowNameColored: windowColorSettings['windowColor.isWindowNameColored'] ?? true,
-        isActiveItemsColored: windowColorSettings['windowColor.isActiveItemsColored'] ?? true,
-        setWindowTitle: windowColorSettings['windowColor.setWindowTitle'] ?? true
-    };
-}
-
 export function lightenOrDarkenColor(color: string, percent: number): string {
     let num = parseInt(color.slice(1), 16);
     let amt = Math.round(2.55 * percent);

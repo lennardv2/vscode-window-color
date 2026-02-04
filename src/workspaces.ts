@@ -16,23 +16,32 @@ export async function readConfig(directory: string): Promise<WindowSettings> {
     // First try to read from user preferences
     const userSettings = getUserWorkspaceSettings(directory);
     if (userSettings) {
-        // console.log('[DEBUG] Found user settings for workspace:', JSON.stringify(userSettings, null, 2));
         const fallbackWindowName = directory.split('/').pop() || 'Untitled Window';
+        const mainColor = userSettings.mainColor || generateRandomColor();
         return {
             windowName: userSettings.name || fallbackWindowName,
-            mainColor: userSettings.mainColor || generateRandomColor(),
-            mainColorContrast: getContrastColor(userSettings.mainColor || generateRandomColor()),
+            mainColor: mainColor,
+            mainColorContrast: getContrastColor(mainColor),
             isActivityBarColored: userSettings.isActivityBarColored ?? false,
             isTitleBarColored: userSettings.isTitleBarColored ?? false,
             isStatusBarColored: userSettings.isStatusBarColored ?? true,
             isWindowNameColored: userSettings.isWindowNameColored ?? true,
             isActiveItemsColored: userSettings.isActiveItemsColored ?? true,
-            setWindowTitle: userSettings.setWindowTitle ?? true
+            setWindowTitle: userSettings.setWindowTitle ?? false
         };
     }
     
     // Fallback to reading from workspace files for backwards compatibility
-    const uri = vscode.Uri.file(directory);
+    // Use the actual workspace folder URI when available (supports remote/SSH workspaces)
+    let uri: vscode.Uri;
+    const matchingFolder = vscode.workspace.workspaceFolders?.find(f => f.uri.fsPath === directory);
+    if (matchingFolder) {
+        uri = matchingFolder.uri;
+    } else if (vscode.workspace.workspaceFile?.fsPath === directory) {
+        uri = vscode.workspace.workspaceFile;
+    } else {
+        uri = vscode.Uri.file(directory);
+    }
     const configPath = directory.endsWith('.code-workspace') ? uri : uri.with({ path: `${uri.path}/.vscode/settings.json` });
     // console.log('[DEBUG] Reading config from path:', configPath.fsPath);
 
@@ -64,7 +73,7 @@ export async function readConfig(directory: string): Promise<WindowSettings> {
         isStatusBarColored: windowColorSettings['windowColor.isStatusBarColored'] ?? true,
         isWindowNameColored: windowColorSettings['windowColor.isWindowNameColored'] ?? true,
         isActiveItemsColored: windowColorSettings['windowColor.isActiveItemsColored'] ?? true,
-        setWindowTitle: windowColorSettings['windowColor.setWindowTitle'] ?? true
+        setWindowTitle: windowColorSettings['windowColor.setWindowTitle'] ?? false
     };
     
     // Migrate workspace settings to user preferences if they exist
@@ -227,16 +236,34 @@ async function saveWorkspaceSettingToUser(directory: string, key: string, value:
     const config = vscode.workspace.getConfiguration('windowColor');
     const workspaceSettings = config.get<Record<string, any>>('workspaceSettings') || {};
     const normalizedPath = normalizeWorkspacePath(directory);
-    
+
     // Initialize workspace settings if they don't exist
     if (!workspaceSettings[normalizedPath]) {
         workspaceSettings[normalizedPath] = {};
     }
-    
+
     // Update the specific setting
     workspaceSettings[normalizedPath][key] = value;
-    
+
     // Save back to user preferences
+    await config.update('workspaceSettings', workspaceSettings, vscode.ConfigurationTarget.Global);
+}
+
+export async function saveAllWorkspaceSettings(directory: string, settings: Record<string, string | boolean>): Promise<void> {
+    const config = vscode.workspace.getConfiguration('windowColor');
+    const workspaceSettings = config.get<Record<string, any>>('workspaceSettings') || {};
+    const normalizedPath = normalizeWorkspacePath(directory);
+
+    if (!workspaceSettings[normalizedPath]) {
+        workspaceSettings[normalizedPath] = {};
+    }
+
+    // Update all settings in a single operation
+    for (const [key, value] of Object.entries(settings)) {
+        workspaceSettings[normalizedPath][key] = value;
+    }
+
+    // Single atomic write
     await config.update('workspaceSettings', workspaceSettings, vscode.ConfigurationTarget.Global);
 }
 

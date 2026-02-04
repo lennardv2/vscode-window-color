@@ -4,6 +4,15 @@ All notable changes to the "Set Window Color & Name" extension will be documente
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.1.0] - 2026-02-04
+
+### Added
+- User preference system for per-workspace color settings stored in user preferences
+- New `windowColor.workspaceSettings` configuration for persistent per-workspace settings
+
+### Changed
+- Completed internal refactoring to use window terminology consistently
+
 ## [2.0.0] - 2025-01-12
 
 ### Changed
