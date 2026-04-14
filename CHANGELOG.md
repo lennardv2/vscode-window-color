@@ -4,6 +4,12 @@ All notable changes to the "Set Window Color & Name" extension will be documente
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.1.2] - 2026-04-14
+
+### Fixed
+- Disabling "Set Window Title" now removes the `window.title` key from `.vscode/settings.json` entirely, so the global user setting takes effect again instead of being overridden by an empty value
+- `workbench.colorCustomizations` is removed from `.vscode/settings.json` when no managed color keys remain, instead of leaving an empty object behind
+
 ## [2.1.1] - 2026-02-04
 
 ### Fixed

@@ -2,7 +2,7 @@
     "name": "set-window-color-name",
     "displayName": "Set Window Color & Name",
     "description": "Set window colors and specify a name to distinguish multiple windows. Keywords: window colors peacock colorize",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "engines": {
         "vscode": "^1.60.0"
     },
